@@ -25,10 +25,18 @@ type Service struct {
 }
 
 type ServiceGroup struct {
+	ID          string
+	Name        string
+	Slug        string
+	Description string
+	Order       int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ServiceTag struct {
 	ID        string
-	Name      string
-	Slug      string
-	Order     int
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ServiceID string
+	Key       string
+	Value     string
 }

@@ -1,3 +1,4 @@
+// Package app provides application initialization and lifecycle management.
 package app
 
 import (
@@ -8,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/bissquit/incident-management/internal/catalog"
+	catalogpostgres "github.com/bissquit/incident-management/internal/catalog/postgres"
 	"github.com/bissquit/incident-management/internal/config"
 	"github.com/bissquit/incident-management/internal/pkg/httputil"
 	"github.com/bissquit/incident-management/internal/pkg/postgres"
@@ -16,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// App represents the application instance.
 type App struct {
 	config *config.Config
 	logger *slog.Logger
@@ -23,6 +27,7 @@ type App struct {
 	server *http.Server
 }
 
+// New creates a new application instance.
 func New(cfg *config.Config) (*App, error) {
 	logger := initLogger(cfg.Log)
 
@@ -54,6 +59,7 @@ func New(cfg *config.Config) (*App, error) {
 	return app, nil
 }
 
+// Run starts the HTTP server.
 func (a *App) Run() error {
 	a.logger.Info("starting server",
 		"host", a.config.Server.Host,
@@ -67,6 +73,7 @@ func (a *App) Run() error {
 	return nil
 }
 
+// Shutdown gracefully shuts down the application.
 func (a *App) Shutdown(ctx context.Context) error {
 	a.logger.Info("shutting down server")
 
@@ -91,10 +98,18 @@ func (a *App) setupRouter() *chi.Mux {
 	r.Get("/healthz", a.healthzHandler)
 	r.Get("/readyz", a.readyzHandler)
 
+	catalogRepo := catalogpostgres.NewRepository(a.db)
+	catalogService := catalog.NewService(catalogRepo)
+	catalogHandler := catalog.NewHandler(catalogService)
+
+	r.Route("/api/v1", func(r chi.Router) {
+		catalogHandler.RegisterRoutes(r)
+	})
+
 	return r
 }
 
-func (a *App) healthzHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	httputil.Text(w, http.StatusOK, "OK")
 }
 

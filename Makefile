@@ -21,8 +21,8 @@ help:
 
 dev:
 	@command -v air > /dev/null 2>&1 || { echo "air not installed. Run: go install github.com/air-verse/air@latest"; exit 1; }
-	 @test -f .env || { echo ".env file not found. Copy from .env.example first: cp .env.example .env"; exit 1; }
-	. .env.example && air
+	@test -f .env || { echo ".env file not found. Copy from .env.example first: cp .env.example .env"; exit 1; }
+	@set -a; . ./.env; set +a; air
 
 test:
 	go test -v -race -coverprofile=coverage.out ./...

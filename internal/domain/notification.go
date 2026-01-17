@@ -2,20 +2,23 @@ package domain
 
 import "time"
 
+// ChannelType represents a notification channel type.
 type ChannelType string
 
+// Notification channel types.
 const (
 	ChannelTypeEmail    ChannelType = "email"
 	ChannelTypeTelegram ChannelType = "telegram"
 )
 
+// NotificationChannel represents a user's notification channel.
 type NotificationChannel struct {
-	ID         string
-	UserID     string
-	Type       ChannelType
-	Target     string
-	IsEnabled  bool
-	IsVerified bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID         string      `json:"id"`
+	UserID     string      `json:"user_id"`
+	Type       ChannelType `json:"type"`
+	Target     string      `json:"target"`
+	IsEnabled  bool        `json:"is_enabled"`
+	IsVerified bool        `json:"is_verified"`
+	CreatedAt  time.Time   `json:"created_at"`
+	UpdatedAt  time.Time   `json:"updated_at"`
 }

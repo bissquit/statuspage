@@ -1,3 +1,4 @@
+// Package config provides application configuration management.
 package config
 
 import (
@@ -11,12 +12,14 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
+// Config represents the application configuration.
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Log      LogConfig
 }
 
+// ServerConfig contains HTTP server settings.
 type ServerConfig struct {
 	Host         string
 	Port         string
@@ -24,6 +27,7 @@ type ServerConfig struct {
 	WriteTimeout time.Duration
 }
 
+// DatabaseConfig contains database connection settings.
 type DatabaseConfig struct {
 	URL             string
 	MaxOpenConns    int
@@ -31,11 +35,13 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration
 }
 
+// LogConfig contains logging settings.
 type LogConfig struct {
 	Level  string
 	Format string
 }
 
+// Load loads configuration from config.yaml and environment variables.
 func Load() (*Config, error) {
 	k := koanf.New(".")
 

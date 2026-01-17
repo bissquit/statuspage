@@ -1,3 +1,4 @@
+// StatusPage is the main entry point for the status page service.
 package main
 
 import (

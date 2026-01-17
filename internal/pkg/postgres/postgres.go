@@ -1,3 +1,4 @@
+// Package postgres provides PostgreSQL database connection utilities.
 package postgres
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Config contains PostgreSQL connection configuration.
 type Config struct {
 	URL             string
 	MaxOpenConns    int
@@ -15,6 +17,7 @@ type Config struct {
 	ConnMaxLifetime time.Duration
 }
 
+// Connect establishes a connection pool to PostgreSQL.
 func Connect(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(cfg.URL)
 	if err != nil {

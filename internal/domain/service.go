@@ -2,8 +2,10 @@ package domain
 
 import "time"
 
+// ServiceStatus represents the operational status of a service.
 type ServiceStatus string
 
+// Service statuses.
 const (
 	ServiceStatusOperational   ServiceStatus = "operational"
 	ServiceStatusDegraded      ServiceStatus = "degraded"
@@ -12,31 +14,34 @@ const (
 	ServiceStatusMaintenance   ServiceStatus = "maintenance"
 )
 
+// Service represents a monitored service.
 type Service struct {
-	ID          string
-	Name        string
-	Slug        string
-	Description string
-	Status      ServiceStatus
-	GroupID     *string
-	Order       int
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Slug        string        `json:"slug"`
+	Description string        `json:"description"`
+	Status      ServiceStatus `json:"status"`
+	GroupID     *string       `json:"group_id,omitempty"`
+	Order       int           `json:"order"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
 }
 
+// ServiceGroup represents a group of related services.
 type ServiceGroup struct {
-	ID          string
-	Name        string
-	Slug        string
-	Description string
-	Order       int
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Description string    `json:"description"`
+	Order       int       `json:"order"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// ServiceTag represents a key-value tag attached to a service.
 type ServiceTag struct {
-	ID        string
-	ServiceID string
-	Key       string
-	Value     string
+	ID        string `json:"id"`
+	ServiceID string `json:"service_id"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
 }

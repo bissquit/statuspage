@@ -4,7 +4,6 @@ package catalog
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"log/slog"
 	"net/http"
 
@@ -249,7 +248,6 @@ func (h *Handler) GetService(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 
 	service, err := h.service.GetServiceBySlug(r.Context(), slug)
-	log.Printf("DEBUG: %v", service)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return

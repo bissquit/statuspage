@@ -82,6 +82,28 @@ make migrate-create NAME=add_users    # Создать новую миграци
 
 ## Документация
 
+### API Documentation
+
+Полная документация REST API доступна в [docs/api/](./docs/api/):
+
+- [Обзор и основы](./docs/api/README.md)
+- [Аутентификация](./docs/api/01-auth.md)
+- [Каталог сервисов](./docs/api/02-catalog.md)
+- [События (инциденты и плановые работы)](./docs/api/03-events.md)
+- [Шаблоны событий](./docs/api/04-templates.md)
+- [Уведомления](./docs/api/05-notifications.md)
+- [Публичные эндпоинты](./docs/api/06-public-status.md)
+
+### Тестовые пользователи
+
+По умолчанию в системе создан тестовый пользователь:
+
+| Email | Password | Role |
+|-------|----------|------|
+| user@example.com | user123 | user |
+
+### Архитектура
+
 Подробная документация по архитектуре, принципам и roadmap доступна в [CLAUDE.md](./CLAUDE.md).
 
 ## Технологии
@@ -92,6 +114,16 @@ make migrate-create NAME=add_users    # Создать новую миграци
 - **Миграции**: golang-migrate
 - **Логирование**: slog (stdlib)
 - **Метрики**: Prometheus
+
+## CI/CD
+
+Проект использует GitHub Actions для автоматизации:
+
+- **Lint**: проверка кода с помощью golangci-lint
+- **Test**: запуск unit и integration тестов с PostgreSQL
+- **Build**: сборка бинарника и проверка успешной компиляции
+
+Конфигурация CI доступна в [.github/workflows/ci.yml](./.github/workflows/ci.yml)
 
 ## Лицензия
 

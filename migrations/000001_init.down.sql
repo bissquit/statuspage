@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS event_updates;
+DROP TABLE IF EXISTS event_services;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS event_templates;
+DROP TABLE IF EXISTS subscription_services;
+DROP TABLE IF EXISTS service_tags;
+DROP TABLE IF EXISTS services;
+DROP TABLE IF EXISTS service_groups;
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS notification_channels;
+DROP TABLE IF EXISTS users;

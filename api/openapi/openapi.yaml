@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: StatusPage API
-  description: API для управления статусами сервисов и инцидентами
+  description: API for managing service statuses and incidents
   version: 1.0.0
   contact:
     name: API Support
@@ -12,21 +12,21 @@ servers:
 
 tags:
   - name: auth
-    description: Аутентификация и управление сессией
+    description: Authentication and session management
   - name: services
-    description: Управление сервисами
+    description: Service management
   - name: groups
-    description: Управление группами сервисов
+    description: Service group management
   - name: events
-    description: Управление событиями (инциденты и maintenance)
+    description: Event management (incidents and maintenance)
   - name: templates
-    description: Шаблоны событий
+    description: Event templates
   - name: channels
-    description: Каналы уведомлений пользователя
+    description: User notification channels
   - name: subscriptions
-    description: Подписки на уведомления
+    description: Notification subscriptions
   - name: status
-    description: Публичный статус
+    description: Public status
 
 paths:
   /healthz:
@@ -60,7 +60,7 @@ paths:
   /api/v1/auth/register:
     post:
       tags: [auth]
-      summary: Регистрация нового пользователя
+      summary: Register a new user
       operationId: register
       requestBody:
         required: true
@@ -70,7 +70,7 @@ paths:
               $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
-          description: Пользователь создан
+          description: User created
           content:
             application/json:
               schema:
@@ -83,7 +83,7 @@ paths:
   /api/v1/auth/login:
     post:
       tags: [auth]
-      summary: Вход в систему
+      summary: Log in to the system
       operationId: login
       requestBody:
         required: true
@@ -93,7 +93,7 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Успешный вход
+          description: Login successful
           content:
             application/json:
               schema:
@@ -104,7 +104,7 @@ paths:
   /api/v1/auth/refresh:
     post:
       tags: [auth]
-      summary: Обновление токенов
+      summary: Refresh tokens
       operationId: refreshTokens
       requestBody:
         required: true
@@ -114,7 +114,7 @@ paths:
               $ref: '#/components/schemas/RefreshRequest'
       responses:
         '200':
-          description: Токены обновлены
+          description: Tokens refreshed
           content:
             application/json:
               schema:
@@ -125,7 +125,7 @@ paths:
   /api/v1/auth/logout:
     post:
       tags: [auth]
-      summary: Выход из системы
+      summary: Log out from the system
       operationId: logout
       requestBody:
         required: true
@@ -135,18 +135,18 @@ paths:
               $ref: '#/components/schemas/RefreshRequest'
       responses:
         '204':
-          description: Успешный выход
+          description: Logout successful
 
   /api/v1/me:
     get:
       tags: [auth]
-      summary: Получить текущего пользователя
+      summary: Get current user
       operationId: getCurrentUser
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Данные пользователя
+          description: User data
           content:
             application/json:
               schema:
@@ -157,8 +157,8 @@ paths:
   /api/v1/services:
     get:
       tags: [services]
-      summary: Список сервисов
-      description: Публичный endpoint, не требует авторизации
+      summary: List services
+      description: Public endpoint, no authentication required
       operationId: listServices
       parameters:
         - name: group_id
@@ -172,7 +172,7 @@ paths:
             $ref: '#/components/schemas/ServiceStatus'
       responses:
         '200':
-          description: Список сервисов
+          description: List of services
           content:
             application/json:
               schema:
@@ -180,7 +180,7 @@ paths:
 
     post:
       tags: [services]
-      summary: Создать сервис
+      summary: Create a service
       operationId: createService
       security:
         - BearerAuth: []
@@ -192,7 +192,7 @@ paths:
               $ref: '#/components/schemas/CreateServiceRequest'
       responses:
         '201':
-          description: Сервис создан
+          description: Service created
           content:
             application/json:
               schema:
@@ -209,13 +209,13 @@ paths:
   /api/v1/services/{slug}:
     get:
       tags: [services]
-      summary: Получить сервис по slug
+      summary: Get a service by slug
       operationId: getService
       parameters:
         - $ref: '#/components/parameters/ServiceSlug'
       responses:
         '200':
-          description: Данные сервиса
+          description: Service data
           content:
             application/json:
               schema:
@@ -225,7 +225,7 @@ paths:
 
     patch:
       tags: [services]
-      summary: Обновить сервис
+      summary: Update a service
       operationId: updateService
       security:
         - BearerAuth: []
@@ -239,7 +239,7 @@ paths:
               $ref: '#/components/schemas/UpdateServiceRequest'
       responses:
         '200':
-          description: Сервис обновлён
+          description: Service updated
           content:
             application/json:
               schema:
@@ -255,7 +255,7 @@ paths:
 
     delete:
       tags: [services]
-      summary: Удалить сервис
+      summary: Delete a service
       operationId: deleteService
       security:
         - BearerAuth: []
@@ -263,7 +263,7 @@ paths:
         - $ref: '#/components/parameters/ServiceSlug'
       responses:
         '204':
-          description: Сервис удалён
+          description: Service deleted
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -274,13 +274,13 @@ paths:
   /api/v1/services/{slug}/tags:
     get:
       tags: [services]
-      summary: Получить теги сервиса
+      summary: Get service tags
       operationId: getServiceTags
       parameters:
         - $ref: '#/components/parameters/ServiceSlug'
       responses:
         '200':
-          description: Теги сервиса
+          description: Service tags
           content:
             application/json:
               schema:
@@ -290,7 +290,7 @@ paths:
 
     put:
       tags: [services]
-      summary: Обновить теги сервиса
+      summary: Update service tags
       operationId: updateServiceTags
       security:
         - BearerAuth: []
@@ -304,7 +304,7 @@ paths:
               $ref: '#/components/schemas/UpdateTagsRequest'
       responses:
         '200':
-          description: Теги обновлены
+          description: Tags updated
           content:
             application/json:
               schema:
@@ -319,11 +319,11 @@ paths:
   /api/v1/groups:
     get:
       tags: [groups]
-      summary: Список групп
+      summary: List groups
       operationId: listGroups
       responses:
         '200':
-          description: Список групп
+          description: List of groups
           content:
             application/json:
               schema:
@@ -331,7 +331,7 @@ paths:
 
     post:
       tags: [groups]
-      summary: Создать группу
+      summary: Create a group
       operationId: createGroup
       security:
         - BearerAuth: []
@@ -343,7 +343,7 @@ paths:
               $ref: '#/components/schemas/CreateGroupRequest'
       responses:
         '201':
-          description: Группа создана
+          description: Group created
           content:
             application/json:
               schema:
@@ -360,13 +360,13 @@ paths:
   /api/v1/groups/{slug}:
     get:
       tags: [groups]
-      summary: Получить группу по slug
+      summary: Get a group by slug
       operationId: getGroup
       parameters:
         - $ref: '#/components/parameters/GroupSlug'
       responses:
         '200':
-          description: Данные группы
+          description: Group data
           content:
             application/json:
               schema:
@@ -376,7 +376,7 @@ paths:
 
     patch:
       tags: [groups]
-      summary: Обновить группу
+      summary: Update a group
       operationId: updateGroup
       security:
         - BearerAuth: []
@@ -390,7 +390,7 @@ paths:
               $ref: '#/components/schemas/UpdateGroupRequest'
       responses:
         '200':
-          description: Группа обновлена
+          description: Group updated
           content:
             application/json:
               schema:
@@ -406,7 +406,7 @@ paths:
 
     delete:
       tags: [groups]
-      summary: Удалить группу
+      summary: Delete a group
       operationId: deleteGroup
       security:
         - BearerAuth: []
@@ -414,7 +414,7 @@ paths:
         - $ref: '#/components/parameters/GroupSlug'
       responses:
         '204':
-          description: Группа удалена
+          description: Group deleted
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -425,7 +425,7 @@ paths:
   /api/v1/events:
     get:
       tags: [events]
-      summary: Список событий
+      summary: List events
       operationId: listEvents
       security:
         - BearerAuth: []
@@ -440,7 +440,7 @@ paths:
             $ref: '#/components/schemas/EventStatus'
       responses:
         '200':
-          description: Список событий
+          description: List of events
           content:
             application/json:
               schema:
@@ -452,11 +452,11 @@ paths:
 
     post:
       tags: [events]
-      summary: Создать событие
+      summary: Create an event
       description: |
-        Создаёт инцидент или maintenance. 
-        Для incident обязательно указать severity.
-        Статус должен соответствовать типу события.
+        Creates an incident or maintenance.
+        For incident, severity must be specified.
+        Status must correspond to the event type.
       operationId: createEvent
       security:
         - BearerAuth: []
@@ -468,7 +468,7 @@ paths:
               $ref: '#/components/schemas/CreateEventRequest'
       responses:
         '201':
-          description: Событие создано
+          description: Event created
           content:
             application/json:
               schema:
@@ -483,7 +483,7 @@ paths:
   /api/v1/events/{id}:
     get:
       tags: [events]
-      summary: Получить событие
+      summary: Get an event
       operationId: getEvent
       security:
         - BearerAuth: []
@@ -491,7 +491,7 @@ paths:
         - $ref: '#/components/parameters/EventId'
       responses:
         '200':
-          description: Данные события
+          description: Event data
           content:
             application/json:
               schema:
@@ -505,8 +505,8 @@ paths:
 
     delete:
       tags: [events]
-      summary: Удалить событие
-      description: Требуется роль admin
+      summary: Delete an event
+      description: Requires admin role
       operationId: deleteEvent
       security:
         - BearerAuth: []
@@ -514,7 +514,7 @@ paths:
         - $ref: '#/components/parameters/EventId'
       responses:
         '204':
-          description: Событие удалено
+          description: Event deleted
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -525,7 +525,7 @@ paths:
   /api/v1/events/{id}/updates:
     get:
       tags: [events]
-      summary: Список обновлений события
+      summary: List event updates
       operationId: listEventUpdates
       security:
         - BearerAuth: []
@@ -533,7 +533,7 @@ paths:
         - $ref: '#/components/parameters/EventId'
       responses:
         '200':
-          description: Список обновлений
+          description: List of updates
           content:
             application/json:
               schema:
@@ -547,8 +547,8 @@ paths:
 
     post:
       tags: [events]
-      summary: Добавить обновление к событию
-      description: Также обновляет статус события
+      summary: Add an update to an event
+      description: Also updates the event status
       operationId: addEventUpdate
       security:
         - BearerAuth: []
@@ -562,7 +562,7 @@ paths:
               $ref: '#/components/schemas/AddEventUpdateRequest'
       responses:
         '201':
-          description: Обновление добавлено
+          description: Update added
           content:
             application/json:
               schema:
@@ -579,13 +579,13 @@ paths:
   /api/v1/templates:
     get:
       tags: [templates]
-      summary: Список шаблонов
+      summary: List templates
       operationId: listTemplates
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Список шаблонов
+          description: List of templates
           content:
             application/json:
               schema:
@@ -597,8 +597,8 @@ paths:
 
     post:
       tags: [templates]
-      summary: Создать шаблон
-      description: Требуется роль admin
+      summary: Create a template
+      description: Requires admin role
       operationId: createTemplate
       security:
         - BearerAuth: []
@@ -610,7 +610,7 @@ paths:
               $ref: '#/components/schemas/CreateTemplateRequest'
       responses:
         '201':
-          description: Шаблон создан
+          description: Template created
           content:
             application/json:
               schema:
@@ -625,7 +625,7 @@ paths:
   /api/v1/templates/{slug}:
     get:
       tags: [templates]
-      summary: Получить шаблон
+      summary: Get a template
       operationId: getTemplate
       security:
         - BearerAuth: []
@@ -633,7 +633,7 @@ paths:
         - $ref: '#/components/parameters/TemplateSlug'
       responses:
         '200':
-          description: Данные шаблона
+          description: Template data
           content:
             application/json:
               schema:
@@ -648,8 +648,8 @@ paths:
   /api/v1/templates/{slug}/preview:
     post:
       tags: [templates]
-      summary: Превью шаблона
-      description: Рендерит шаблон с переданными данными
+      summary: Preview a template
+      description: Renders the template with provided data
       operationId: previewTemplate
       security:
         - BearerAuth: []
@@ -663,7 +663,7 @@ paths:
               $ref: '#/components/schemas/PreviewTemplateRequest'
       responses:
         '200':
-          description: Результат рендеринга
+          description: Rendering result
           content:
             application/json:
               schema:
@@ -678,7 +678,7 @@ paths:
   /api/v1/templates/{id}:
     delete:
       tags: [templates]
-      summary: Удалить шаблон
+      summary: Delete a template
       operationId: deleteTemplate
       security:
         - BearerAuth: []
@@ -691,7 +691,7 @@ paths:
             format: uuid
       responses:
         '204':
-          description: Шаблон удалён
+          description: Template deleted
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -702,13 +702,13 @@ paths:
   /api/v1/me/channels:
     get:
       tags: [channels]
-      summary: Мои каналы уведомлений
+      summary: My notification channels
       operationId: listMyChannels
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Список каналов
+          description: List of channels
           content:
             application/json:
               schema:
@@ -718,7 +718,7 @@ paths:
 
     post:
       tags: [channels]
-      summary: Добавить канал уведомлений
+      summary: Add a notification channel
       operationId: createChannel
       security:
         - BearerAuth: []
@@ -730,7 +730,7 @@ paths:
               $ref: '#/components/schemas/CreateChannelRequest'
       responses:
         '201':
-          description: Канал создан
+          description: Channel created
           content:
             application/json:
               schema:
@@ -743,7 +743,7 @@ paths:
   /api/v1/me/channels/{id}:
     patch:
       tags: [channels]
-      summary: Обновить канал (вкл/выкл)
+      summary: Update a channel (enable/disable)
       operationId: updateChannel
       security:
         - BearerAuth: []
@@ -757,7 +757,7 @@ paths:
               $ref: '#/components/schemas/UpdateChannelRequest'
       responses:
         '200':
-          description: Канал обновлён
+          description: Channel updated
           content:
             application/json:
               schema:
@@ -771,7 +771,7 @@ paths:
 
     delete:
       tags: [channels]
-      summary: Удалить канал
+      summary: Delete a channel
       operationId: deleteChannel
       security:
         - BearerAuth: []
@@ -779,7 +779,7 @@ paths:
         - $ref: '#/components/parameters/ChannelId'
       responses:
         '204':
-          description: Канал удалён
+          description: Channel deleted
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -790,7 +790,7 @@ paths:
   /api/v1/me/channels/{id}/verify:
     post:
       tags: [channels]
-      summary: Верифицировать канал
+      summary: Verify a channel
       operationId: verifyChannel
       security:
         - BearerAuth: []
@@ -798,7 +798,7 @@ paths:
         - $ref: '#/components/parameters/ChannelId'
       responses:
         '200':
-          description: Канал верифицирован
+          description: Channel verified
           content:
             application/json:
               schema:
@@ -813,13 +813,13 @@ paths:
   /api/v1/me/subscriptions:
     get:
       tags: [subscriptions]
-      summary: Моя подписка
+      summary: My subscription
       operationId: getMySubscription
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Данные подписки
+          description: Subscription data
           content:
             application/json:
               schema:
@@ -829,7 +829,7 @@ paths:
 
     post:
       tags: [subscriptions]
-      summary: Создать или обновить подписку
+      summary: Create or update a subscription
       operationId: updateSubscription
       security:
         - BearerAuth: []
@@ -841,7 +841,7 @@ paths:
               $ref: '#/components/schemas/UpdateSubscriptionRequest'
       responses:
         '200':
-          description: Подписка обновлена
+          description: Subscription updated
           content:
             application/json:
               schema:
@@ -851,13 +851,13 @@ paths:
 
     delete:
       tags: [subscriptions]
-      summary: Удалить подписку
+      summary: Delete a subscription
       operationId: deleteSubscription
       security:
         - BearerAuth: []
       responses:
         '204':
-          description: Подписка удалена
+          description: Subscription deleted
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -866,12 +866,12 @@ paths:
   /api/v1/status:
     get:
       tags: [status]
-      summary: Текущий публичный статус
-      description: Не требует авторизации
+      summary: Current public status
+      description: No authentication required
       operationId: getPublicStatus
       responses:
         '200':
-          description: Текущий статус системы
+          description: Current system status
           content:
             application/json:
               schema:
@@ -880,12 +880,12 @@ paths:
   /api/v1/status/history:
     get:
       tags: [status]
-      summary: История событий
-      description: Не требует авторизации
+      summary: Event history
+      description: No authentication required
       operationId: getStatusHistory
       responses:
         '200':
-          description: История событий
+          description: Event history
           content:
             application/json:
               schema:
@@ -905,7 +905,7 @@ components:
       required: true
       schema:
         type: string
-      description: Уникальный slug сервиса
+      description: Unique service slug
 
     GroupSlug:
       name: slug
@@ -913,7 +913,7 @@ components:
       required: true
       schema:
         type: string
-      description: Уникальный slug группы
+      description: Unique group slug
 
     EventId:
       name: id
@@ -922,7 +922,7 @@ components:
       schema:
         type: string
         format: uuid
-      description: UUID события
+      description: Event UUID
 
     TemplateSlug:
       name: slug
@@ -930,7 +930,7 @@ components:
       required: true
       schema:
         type: string
-      description: Уникальный slug шаблона
+      description: Unique template slug
 
     ChannelId:
       name: id
@@ -939,11 +939,11 @@ components:
       schema:
         type: string
         format: uuid
-      description: UUID канала уведомлений
+      description: Notification channel UUID
 
   responses:
     ValidationError:
-      description: Ошибка валидации
+      description: Validation error
       content:
         application/json:
           schema:
@@ -959,7 +959,7 @@ components:
                     type: string
 
     UnauthorizedError:
-      description: Требуется авторизация
+      description: Authentication required
       content:
         application/json:
           schema:
@@ -973,7 +973,7 @@ components:
                     example: missing authorization header
 
     ForbiddenError:
-      description: Недостаточно прав
+      description: Insufficient permissions
       content:
         application/json:
           schema:
@@ -987,7 +987,7 @@ components:
                     example: insufficient permissions
 
     NotFoundError:
-      description: Ресурс не найден
+      description: Resource not found
       content:
         application/json:
           schema:
@@ -1001,7 +1001,7 @@ components:
                     example: service not found
 
     ConflictError:
-      description: Конфликт (например, дубликат slug)
+      description: Conflict (e.g., duplicate slug)
       content:
         application/json:
           schema:
@@ -1041,8 +1041,8 @@ components:
         - in_progress
         - completed
       description: |
-        Для incident: investigating, identified, monitoring, resolved
-        Для maintenance: scheduled, in_progress, completed
+        For incident: investigating, identified, monitoring, resolved
+        For maintenance: scheduled, in_progress, completed
 
     Severity:
       type: string
@@ -1325,7 +1325,7 @@ components:
           items:
             type: string
             format: uuid
-          description: Пустой массив означает подписку на все сервисы
+          description: Empty array means subscription to all services
         created_at:
           type: string
           format: date-time
@@ -1344,7 +1344,7 @@ components:
           type: string
         expires_in:
           type: integer
-          description: Время жизни access_token в секундах
+          description: Access token lifetime in seconds
       required:
         - access_token
         - refresh_token
@@ -1507,7 +1507,7 @@ components:
           $ref: '#/components/schemas/EventStatus'
         severity:
           $ref: '#/components/schemas/Severity'
-          description: Обязательно для type=incident
+          description: Required for type=incident
         description:
           type: string
         started_at:
@@ -1595,7 +1595,7 @@ components:
           $ref: '#/components/schemas/ChannelType'
         target:
           type: string
-          description: Email адрес или Telegram chat_id
+          description: Email address or Telegram chat_id
       required:
         - type
         - target
@@ -1616,7 +1616,7 @@ components:
           items:
             type: string
             format: uuid
-          description: Пустой массив для подписки на все сервисы
+          description: Empty array for subscription to all services
 
     UserResponse:
       type: object

@@ -2,6 +2,17 @@
 
 API для управления каналами уведомлений и подписками.
 
+## Получение токена для работы
+
+```bash
+# User токен (для управления своими каналами и подписками)
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "user123"}' | jq -r '.data.tokens.access_token')
+
+echo "User token: $TOKEN"
+```
+
 ## Каналы уведомлений
 
 ### Список каналов
@@ -46,8 +57,13 @@ API для управления каналами уведомлений и по�
 #### Example
 
 ```bash
+# Получить user токен (см. начало документа)
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "user123"}' | jq -r '.data.tokens.access_token')
+
 curl http://localhost:8080/api/v1/me/channels \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---
@@ -79,14 +95,16 @@ curl http://localhost:8080/api/v1/me/channels \
 
 ```json
 {
-  "id": "bb0e8400-e29b-41d4-a716-446655440000",
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "type": "email",
-  "target": "notifications@example.com",
-  "is_enabled": true,
-  "is_verified": false,
-  "created_at": "2026-01-19T12:00:00Z",
-  "updated_at": "2026-01-19T12:00:00Z"
+  "data": {
+    "id": "bb0e8400-e29b-41d4-a716-446655440000",
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "email",
+    "target": "notifications@example.com",
+    "is_enabled": true,
+    "is_verified": false,
+    "created_at": "2026-01-19T12:00:00Z",
+    "updated_at": "2026-01-19T12:00:00Z"
+  }
 }
 ```
 
@@ -104,7 +122,7 @@ curl -X POST http://localhost:8080/api/v1/me/channels \
   -d '{
     "type": "email",
     "target": "alerts@example.com"
-  }'
+  }' | jq
 ```
 
 ---
@@ -155,7 +173,7 @@ curl -X PATCH http://localhost:8080/api/v1/me/channels/bb0e8400-e29b-41d4-a716-4
   -H "Content-Type: application/json" \
   -d '{
     "is_enabled": true
-  }'
+  }' | jq
 ```
 
 ---
@@ -195,7 +213,7 @@ curl -X PATCH http://localhost:8080/api/v1/me/channels/bb0e8400-e29b-41d4-a716-4
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/me/channels/bb0e8400-e29b-41d4-a716-446655440000/verify \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---
@@ -220,7 +238,7 @@ curl -X POST http://localhost:8080/api/v1/me/channels/bb0e8400-e29b-41d4-a716-44
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/me/channels/bb0e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---
@@ -259,7 +277,7 @@ curl -X DELETE http://localhost:8080/api/v1/me/channels/bb0e8400-e29b-41d4-a716-
 
 ```bash
 curl http://localhost:8080/api/v1/me/subscriptions \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---
@@ -318,7 +336,7 @@ curl -X POST http://localhost:8080/api/v1/me/subscriptions \
   -H "Content-Type: application/json" \
   -d '{
     "service_ids": []
-  }'
+  }' | jq
 
 # Подписаться на конкретные сервисы
 curl -X POST http://localhost:8080/api/v1/me/subscriptions \
@@ -326,7 +344,7 @@ curl -X POST http://localhost:8080/api/v1/me/subscriptions \
   -H "Content-Type: application/json" \
   -d '{
     "service_ids": ["550e8400-e29b-41d4-a716-446655440000"]
-  }'
+  }' | jq
 ```
 
 ---
@@ -350,7 +368,7 @@ curl -X POST http://localhost:8080/api/v1/me/subscriptions \
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/me/subscriptions \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---
@@ -358,7 +376,10 @@ curl -X DELETE http://localhost:8080/api/v1/me/subscriptions \
 ## Полный пример workflow
 
 ```bash
-TOKEN="your_token_here"
+# Получить user токен
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "user123"}' | jq -r '.data.tokens.access_token')
 
 echo "=== 1. Создание Email канала ==="
 EMAIL_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
@@ -369,12 +390,12 @@ EMAIL_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
     "target": "alerts@example.com"
   }')
 
-EMAIL_CHANNEL_ID=$(echo $EMAIL_CHANNEL | jq -r '.id')
+EMAIL_CHANNEL_ID=$(echo $EMAIL_CHANNEL | jq -r '.data.id')
 echo "Created email channel: $EMAIL_CHANNEL_ID"
 
 echo -e "\n=== 2. Верификация Email канала ==="
 curl -X POST http://localhost:8080/api/v1/me/channels/$EMAIL_CHANNEL_ID/verify \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 
 echo -e "\n\n=== 3. Создание Telegram канала ==="
 TELEGRAM_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
@@ -385,15 +406,15 @@ TELEGRAM_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
     "target": "@myusername"
   }')
 
-TELEGRAM_CHANNEL_ID=$(echo $TELEGRAM_CHANNEL | jq -r '.id')
+TELEGRAM_CHANNEL_ID=$(echo $TELEGRAM_CHANNEL | jq -r '.data.id')
 
 echo -e "\n=== 4. Верификация Telegram канала ==="
 curl -X POST http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID/verify \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 
 echo -e "\n\n=== 5. Список всех каналов ==="
 curl http://localhost:8080/api/v1/me/channels \
-  -H "Authorization: Bearer $TOKEN" | jq .
+  -H "Authorization: Bearer $TOKEN" | jq
 
 echo -e "\n\n=== 6. Создание подписки на все сервисы ==="
 curl -X POST http://localhost:8080/api/v1/me/subscriptions \
@@ -401,7 +422,7 @@ curl -X POST http://localhost:8080/api/v1/me/subscriptions \
   -H "Content-Type: application/json" \
   -d '{
     "service_ids": []
-  }' | jq .
+  }' | jq
 
 echo -e "\n\n=== 7. Отключение Telegram канала ==="
 curl -X PATCH http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID \
@@ -409,11 +430,11 @@ curl -X PATCH http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID \
   -H "Content-Type: application/json" \
   -d '{
     "is_enabled": false
-  }' | jq .
+  }' | jq
 
 echo -e "\n\n=== 8. Получение текущей подписки ==="
 curl http://localhost:8080/api/v1/me/subscriptions \
-  -H "Authorization: Bearer $TOKEN" | jq .
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---

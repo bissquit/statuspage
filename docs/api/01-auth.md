@@ -40,9 +40,9 @@ API для регистрации и аутентификации пользов
 curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "user@example.com",
+    "email": "newuser@example.com",
     "password": "securepassword123"
-  }'
+  }' | jq
 ```
 
 ---
@@ -66,16 +66,20 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 
 ```json
 {
-  "user": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "user@example.com",
-    "role": "user",
-    "created_at": "2026-01-19T12:00:00Z",
-    "updated_at": "2026-01-19T12:00:00Z"
-  },
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_at": "2026-01-19T12:15:00Z"
+  "data": {
+    "user": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "email": "user@example.com",
+      "role": "user",
+      "created_at": "2026-01-19T12:00:00Z",
+      "updated_at": "2026-01-19T12:00:00Z"
+    },
+    "tokens": {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expires_in": 900
+    }
+  }
 }
 ```
 
@@ -89,14 +93,25 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 ### Example
 
 ```bash
+# Логин с тестовым пользователем
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "password": "securepassword123"
-  }' | jq -r '.access_token' > /tmp/token.txt
+    "password": "user123"
+  }' | jq -r '.data.tokens.access_token' > /tmp/token.txt
 
 export TOKEN=$(cat /tmp/token.txt)
+
+# Или с админом для выполнения административных операций
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "password": "admin123"
+  }' | jq -r '.data.tokens.access_token' > /tmp/admin_token.txt
+
+export ADMIN_TOKEN=$(cat /tmp/admin_token.txt)
 ```
 
 ---
@@ -119,8 +134,10 @@ export TOKEN=$(cat /tmp/token.txt)
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_at": "2026-01-19T12:30:00Z"
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_in": 900
+  }
 }
 ```
 
@@ -136,7 +153,7 @@ curl -X POST http://localhost:8080/api/v1/auth/refresh \
   -H "Content-Type: application/json" \
   -d "{
     \"refresh_token\": \"$REFRESH_TOKEN\"
-  }" | jq -r '.access_token' > /tmp/token.txt
+  }" | jq -r '.data.access_token' > /tmp/token.txt
 
 export TOKEN=$(cat /tmp/token.txt)
 ```
@@ -174,7 +191,7 @@ curl -X POST http://localhost:8080/api/v1/auth/logout \
   -H "Authorization: Bearer $TOKEN" \
   -d "{
     \"refresh_token\": \"$REFRESH_TOKEN\"
-  }"
+  }" | jq
 ```
 
 ---
@@ -207,7 +224,7 @@ curl -X POST http://localhost:8080/api/v1/auth/logout \
 
 ```bash
 curl http://localhost:8080/api/v1/me \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 ```
 
 ---
@@ -218,7 +235,7 @@ curl http://localhost:8080/api/v1/me \
 echo "=== Регистрация ==="
 curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"test123"}'
+  -d '{"email":"test@example.com","password":"test123"}' | jq
 
 echo -e "\n\n=== Логин ==="
 RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
@@ -227,15 +244,15 @@ RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
 
 echo $RESPONSE | jq .
 
-TOKEN=$(echo $RESPONSE | jq -r '.access_token')
-REFRESH_TOKEN=$(echo $RESPONSE | jq -r '.refresh_token')
+TOKEN=$(echo $RESPONSE | jq -r '.data.tokens.access_token')
+REFRESH_TOKEN=$(echo $RESPONSE | jq -r '.data.tokens.refresh_token')
 
 echo -e "\n\n=== Получение текущего пользователя ==="
 curl http://localhost:8080/api/v1/me \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq
 
 echo -e "\n\n=== Refresh токена ==="
 curl -X POST http://localhost:8080/api/v1/auth/refresh \
   -H "Content-Type: application/json" \
-  -d "{\"refresh_token\":\"$REFRESH_TOKEN\"}"
+  -d "{\"refresh_token\":\"$REFRESH_TOKEN\"}" | jq
 ```

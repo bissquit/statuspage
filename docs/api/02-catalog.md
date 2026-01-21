@@ -2,6 +2,17 @@
 
 API для управления сервисами и группами сервисов.
 
+## Получение токенов для работы
+
+```bash
+# Admin токен (для CRUD сервисов и групп)
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "admin123"}' | jq -r '.data.tokens.access_token')
+
+echo "Admin token: $ADMIN_TOKEN"
+```
+
 ## Сервисы
 
 ### Список сервисов
@@ -37,7 +48,7 @@ API для управления сервисами и группами серв�
 #### Example
 
 ```bash
-curl http://localhost:8080/api/v1/services
+curl http://localhost:8080/api/v1/services | jq
 ```
 
 ---
@@ -70,7 +81,7 @@ curl http://localhost:8080/api/v1/services
 #### Example
 
 ```bash
-curl http://localhost:8080/api/v1/services/api-gateway
+curl http://localhost:8080/api/v1/services/api-gateway | jq
 ```
 
 ---
@@ -125,14 +136,19 @@ curl http://localhost:8080/api/v1/services/api-gateway
 #### Example
 
 ```bash
+# Получить admin токен (см. начало документа)
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "admin123"}' | jq -r '.data.tokens.access_token')
+
 curl -X POST http://localhost:8080/api/v1/services \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "API Gateway",
     "slug": "api-gateway",
     "description": "Основной API шлюз"
-  }'
+  }' | jq
 ```
 
 ---
@@ -149,17 +165,18 @@ curl -X POST http://localhost:8080/api/v1/services \
 
 ```json
 {
-  "name": "API Gateway (Updated)",
-  "description": "Обновлённое описание",
+  "name": "API Gateway",
+  "slug": "api-gateway",
   "status": "degraded_performance"
 }
 ```
 
-**Все поля опциональные:**
-- `name` - новое название
-- `description` - новое описание
-- `status` - новый статус
-- `group_id` - новая группа
+**ВАЖНО: Все поля обязательные** (это особенность текущей реализации):
+- `name` - название сервиса
+- `slug` - slug сервиса (должен совпадать с URL параметром)
+- `status` - статус сервиса
+- `description` (опционально) - описание
+- `group_id` (опционально) - ID группы
 
 #### Response (200 OK)
 
@@ -187,11 +204,13 @@ curl -X POST http://localhost:8080/api/v1/services \
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/services/api-gateway \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
+    "name": "API Gateway",
+    "slug": "api-gateway",
     "status": "operational"
-  }'
+  }' | jq
 ```
 
 ---
@@ -216,7 +235,7 @@ curl -X PATCH http://localhost:8080/api/v1/services/api-gateway \
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/services/api-gateway \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
 ```
 
 ---
@@ -247,7 +266,7 @@ curl -X DELETE http://localhost:8080/api/v1/services/api-gateway \
 #### Example
 
 ```bash
-curl http://localhost:8080/api/v1/groups
+curl http://localhost:8080/api/v1/groups | jq
 ```
 
 ---
@@ -278,7 +297,7 @@ curl http://localhost:8080/api/v1/groups
 #### Example
 
 ```bash
-curl http://localhost:8080/api/v1/groups/core-services
+curl http://localhost:8080/api/v1/groups/core-services | jq
 ```
 
 ---
@@ -325,13 +344,13 @@ curl http://localhost:8080/api/v1/groups/core-services
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/groups \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Core Services",
     "slug": "core-services",
     "description": "Основные сервисы платформы"
-  }'
+  }' | jq
 ```
 
 ---
@@ -376,12 +395,15 @@ curl -X POST http://localhost:8080/api/v1/groups \
 #### Example
 
 ```bash
+# Обновление группы также требует все поля
 curl -X PATCH http://localhost:8080/api/v1/groups/core-services \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
+    "name": "Core Services",
+    "slug": "core-services",
     "description": "Новое описание"
-  }'
+  }' | jq
 ```
 
 ---
@@ -406,5 +428,5 @@ curl -X PATCH http://localhost:8080/api/v1/groups/core-services \
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/groups/core-services \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
 ```

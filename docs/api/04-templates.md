@@ -2,6 +2,24 @@
 
 API для управления шаблонами событий (инцидентов и плановых работ).
 
+## Получение токенов для работы
+
+```bash
+# Operator токен (для просмотра, рендеринга и создания событий из шаблонов)
+OPERATOR_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "operator@example.com", "password": "admin123"}' | jq -r '.data.tokens.access_token')
+
+echo "Operator token: $OPERATOR_TOKEN"
+
+# Admin токен (для CRUD шаблонов)
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "admin123"}' | jq -r '.data.tokens.access_token')
+
+echo "Admin token: $ADMIN_TOKEN"
+```
+
 ## Список шаблонов
 
 **GET** `/api/v1/templates`
@@ -35,10 +53,10 @@ API для управления шаблонами событий (инциде�
 
 ```bash
 curl http://localhost:8080/api/v1/templates \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $OPERATOR_TOKEN" | jq
 
-curl http://localhost:8080/api/v1/templates?type=incident \
-  -H "Authorization: Bearer $TOKEN"
+curl "http://localhost:8080/api/v1/templates?type=incident" \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" | jq
 ```
 
 ---
@@ -76,7 +94,7 @@ curl http://localhost:8080/api/v1/templates?type=incident \
 
 ```bash
 curl http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $OPERATOR_TOKEN" | jq
 ```
 
 ---
@@ -119,14 +137,16 @@ curl http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446655440000
 
 ```json
 {
-  "id": "aa0e8400-e29b-41d4-a716-446655440000",
-  "name": "Database Outage",
-  "type": "incident",
-  "title_template": "{{.ServiceName}} Database Unavailable",
-  "message_template": "We are investigating reports of {{.ServiceName}} database being unavailable. Users may experience connection errors.",
-  "impact": "major",
-  "created_at": "2026-01-19T12:00:00Z",
-  "updated_at": "2026-01-19T12:00:00Z"
+  "data": {
+    "id": "aa0e8400-e29b-41d4-a716-446655440000",
+    "name": "Database Outage",
+    "type": "incident",
+    "title_template": "{{.ServiceName}} Database Unavailable",
+    "message_template": "We are investigating reports of {{.ServiceName}} database being unavailable. Users may experience connection errors.",
+    "impact": "major",
+    "created_at": "2026-01-19T12:00:00Z",
+    "updated_at": "2026-01-19T12:00:00Z"
+  }
 }
 ```
 
@@ -140,7 +160,7 @@ curl http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446655440000
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/templates \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Database Outage",
@@ -148,7 +168,7 @@ curl -X POST http://localhost:8080/api/v1/templates \
     "title_template": "{{.ServiceName}} Database Unavailable",
     "message_template": "We are investigating reports of {{.ServiceName}} database being unavailable.",
     "impact": "major"
-  }'
+  }' | jq
 ```
 
 ---
@@ -202,11 +222,11 @@ curl -X POST http://localhost:8080/api/v1/templates \
 
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "impact": "critical"
-  }'
+  }' | jq
 ```
 
 ---
@@ -231,7 +251,7 @@ curl -X PATCH http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
 ```
 
 ---
@@ -259,8 +279,10 @@ curl -X DELETE http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-44
 
 ```json
 {
-  "title": "User Database Database Unavailable",
-  "message": "We are investigating reports of User Database database being unavailable. Users may experience connection errors."
+  "data": {
+    "title": "User Database Database Unavailable",
+    "message": "We are investigating reports of User Database database being unavailable. Users may experience connection errors."
+  }
 }
 ```
 
@@ -275,13 +297,13 @@ curl -X DELETE http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-44
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-446655440000/render \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "variables": {
       "ServiceName": "Payment Service"
     }
-  }'
+  }' | jq
 ```
 
 ---
@@ -318,16 +340,18 @@ curl -X POST http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-4466
 
 ```json
 {
-  "id": "770e8400-e29b-41d4-a716-446655440000",
-  "type": "incident",
-  "title": "User Database Database Unavailable",
-  "status": "investigating",
-  "impact": "major",
-  "service_ids": ["550e8400-e29b-41d4-a716-446655440000"],
-  "started_at": "2026-01-19T12:00:00Z",
-  "resolved_at": null,
-  "created_at": "2026-01-19T12:00:00Z",
-  "updated_at": "2026-01-19T12:00:00Z"
+  "data": {
+    "id": "770e8400-e29b-41d4-a716-446655440000",
+    "type": "incident",
+    "title": "User Database Database Unavailable",
+    "status": "investigating",
+    "impact": "major",
+    "service_ids": ["550e8400-e29b-41d4-a716-446655440000"],
+    "started_at": "2026-01-19T12:00:00Z",
+    "resolved_at": null,
+    "created_at": "2026-01-19T12:00:00Z",
+    "updated_at": "2026-01-19T12:00:00Z"
+  }
 }
 ```
 
@@ -342,7 +366,7 @@ curl -X POST http://localhost:8080/api/v1/templates/aa0e8400-e29b-41d4-a716-4466
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/events/from-template \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "template_id": "aa0e8400-e29b-41d4-a716-446655440000",
@@ -351,7 +375,7 @@ curl -X POST http://localhost:8080/api/v1/events/from-template \
     },
     "status": "investigating",
     "service_ids": ["550e8400-e29b-41d4-a716-446655440000"]
-  }'
+  }' | jq
 ```
 
 ---

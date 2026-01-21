@@ -96,6 +96,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// Router returns the HTTP handler for testing.
+func (a *App) Router() http.Handler {
+	return a.server.Handler
+}
+
 func (a *App) setupRouter() *chi.Mux {
 	r := chi.NewRouter()
 

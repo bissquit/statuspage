@@ -332,20 +332,32 @@ func (h *Handler) GetStatusHistory(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{"data": data}); err != nil {
 		slog.Error("failed to encode response", "error", err)
 	}
 }
 
 func (h *Handler) respondError(w http.ResponseWriter, status int, message string) {
-	h.respondJSON(w, status, map[string]string{"error": message})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]string{"message": message},
+	}); err != nil {
+		slog.Error("failed to encode error response", "error", err)
+	}
 }
 
 func (h *Handler) respondValidationError(w http.ResponseWriter, err error) {
-	h.respondJSON(w, http.StatusBadRequest, map[string]string{
-		"error": "validation failed",
-		"details": err.Error(),
-	})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]interface{}{
+			"message": "validation error",
+			"details": err.Error(),
+		},
+	}); err != nil {
+		slog.Error("failed to encode validation error response", "error", err)
+	}
 }
 
 func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {

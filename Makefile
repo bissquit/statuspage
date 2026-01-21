@@ -1,23 +1,24 @@
-.PHONY: help dev test test-unit test-int lint migrate-up migrate-down migrate-create migrate-force build docker-build docker-up docker-down generate openapi
+.PHONY: help dev test test-unit test-integration test-all lint migrate-up migrate-down migrate-create migrate-force build docker-build docker-up docker-down generate openapi
 
 help:
 	@echo "Available commands:"
-	@echo "  make help           - Show this help message"
-	@echo "  make dev            - Run locally with hot-reload (air)"
-	@echo "  make test           - Run all tests"
-	@echo "  make test-unit      - Run only unit tests"
-	@echo "  make test-int       - Run only integration tests"
-	@echo "  make lint           - Run linters"
-	@echo "  make migrate-up     - Apply migrations"
-	@echo "  make migrate-down   - Rollback last migration"
-	@echo "  make migrate-create - Create new migration (usage: make migrate-create NAME=migration_name)"
-	@echo "  make migrate-force  - Force migration version (usage: make migrate-force VERSION=version_number)"
-	@echo "  make build          - Build binary"
-	@echo "  make docker-build   - Build Docker image"
-	@echo "  make docker-up      - Start docker-compose"
-	@echo "  make docker-down    - Stop docker-compose"
-	@echo "  make generate       - Generate code (sqlc, mocks)"
-	@echo "  make openapi        - Validate OpenAPI spec"
+	@echo "  make help            - Show this help message"
+	@echo "  make dev             - Run locally with hot-reload (air)"
+	@echo "  make test            - Run all tests"
+	@echo "  make test-unit       - Run only unit tests"
+	@echo "  make test-integration- Run only integration tests"
+	@echo "  make test-all        - Run unit and integration tests"
+	@echo "  make lint            - Run linters"
+	@echo "  make migrate-up      - Apply migrations"
+	@echo "  make migrate-down    - Rollback last migration"
+	@echo "  make migrate-create  - Create new migration (usage: make migrate-create NAME=migration_name)"
+	@echo "  make migrate-force   - Force migration version (usage: make migrate-force VERSION=version_number)"
+	@echo "  make build           - Build binary"
+	@echo "  make docker-build    - Build Docker image"
+	@echo "  make docker-up       - Start docker-compose"
+	@echo "  make docker-down     - Stop docker-compose"
+	@echo "  make generate        - Generate code (sqlc, mocks)"
+	@echo "  make openapi         - Validate OpenAPI spec"
 
 dev:
 	@command -v air > /dev/null 2>&1 || { echo "air not installed. Run: go install github.com/air-verse/air@latest"; exit 1; }
@@ -28,10 +29,12 @@ test:
 	go test -v -race -coverprofile=coverage.out ./...
 
 test-unit:
-	go test -v -race -short ./...
+	go test -v -race ./internal/...
 
-test-int:
-	go test -v -race -run Integration ./...
+test-integration:
+	go test -v -race -count=1 -tags=integration ./tests/integration/...
+
+test-all: test-unit test-integration
 
 lint:
 	@command -v golangci-lint > /dev/null 2>&1 || { echo "golangci-lint not installed. See: https://golangci-lint.run/welcome/install/"; exit 1; }

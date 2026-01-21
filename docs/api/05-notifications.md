@@ -376,12 +376,19 @@ curl -X DELETE http://localhost:8080/api/v1/me/subscriptions \
 ## Полный пример workflow
 
 ```bash
-# Получить user токен
+# Шаг 1: Получить user токен
+echo "=== Получение user токена ==="
 TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "user123"}' | jq -r '.data.tokens.access_token')
+  -d '{
+    "email": "user@example.com",
+    "password": "user123"
+  }' | jq -r '.data.tokens.access_token')
 
-echo "=== 1. Создание Email канала ==="
+echo "Токен получен: ${TOKEN:0:20}..."
+
+# Шаг 2: Создание Email канала
+echo -e "\n=== Создание Email канала ==="
 EMAIL_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -390,14 +397,18 @@ EMAIL_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
     "target": "alerts@example.com"
   }')
 
-EMAIL_CHANNEL_ID=$(echo $EMAIL_CHANNEL | jq -r '.data.id')
-echo "Created email channel: $EMAIL_CHANNEL_ID"
+echo "$EMAIL_CHANNEL" | jq
+EMAIL_CHANNEL_ID=$(echo "$EMAIL_CHANNEL" | jq -r '.data.id')
 
-echo -e "\n=== 2. Верификация Email канала ==="
-curl -X POST http://localhost:8080/api/v1/me/channels/$EMAIL_CHANNEL_ID/verify \
-  -H "Authorization: Bearer $TOKEN" | jq
+# Шаг 3: Верификация Email канала
+echo -e "\n=== Верификация Email канала ==="
+EMAIL_VERIFY=$(curl -s -X POST http://localhost:8080/api/v1/me/channels/$EMAIL_CHANNEL_ID/verify \
+  -H "Authorization: Bearer $TOKEN")
 
-echo -e "\n\n=== 3. Создание Telegram канала ==="
+echo "$EMAIL_VERIFY" | jq
+
+# Шаг 4: Создание Telegram канала
+echo -e "\n=== Создание Telegram канала ==="
 TELEGRAM_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -406,35 +417,54 @@ TELEGRAM_CHANNEL=$(curl -s -X POST http://localhost:8080/api/v1/me/channels \
     "target": "@myusername"
   }')
 
-TELEGRAM_CHANNEL_ID=$(echo $TELEGRAM_CHANNEL | jq -r '.data.id')
+echo "$TELEGRAM_CHANNEL" | jq
+TELEGRAM_CHANNEL_ID=$(echo "$TELEGRAM_CHANNEL" | jq -r '.data.id')
 
-echo -e "\n=== 4. Верификация Telegram канала ==="
-curl -X POST http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID/verify \
+# Шаг 5: Верификация Telegram канала
+echo -e "\n=== Верификация Telegram канала ==="
+TELEGRAM_VERIFY=$(curl -s -X POST http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID/verify \
+  -H "Authorization: Bearer $TOKEN")
+
+echo "$TELEGRAM_VERIFY" | jq
+
+# Шаг 6: Список всех каналов
+echo -e "\n=== Список всех каналов ==="
+curl -s http://localhost:8080/api/v1/me/channels \
   -H "Authorization: Bearer $TOKEN" | jq
 
-echo -e "\n\n=== 5. Список всех каналов ==="
-curl http://localhost:8080/api/v1/me/channels \
-  -H "Authorization: Bearer $TOKEN" | jq
-
-echo -e "\n\n=== 6. Создание подписки на все сервисы ==="
-curl -X POST http://localhost:8080/api/v1/me/subscriptions \
+# Шаг 7: Создание подписки на все сервисы
+echo -e "\n=== Создание подписки на все сервисы ==="
+SUBSCRIPTION=$(curl -s -X POST http://localhost:8080/api/v1/me/subscriptions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "service_ids": []
-  }' | jq
+  }')
 
-echo -e "\n\n=== 7. Отключение Telegram канала ==="
-curl -X PATCH http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID \
+echo "$SUBSCRIPTION" | jq
+
+# Шаг 8: Отключение Telegram канала
+echo -e "\n=== Отключение Telegram канала ==="
+TELEGRAM_DISABLE=$(curl -s -X PATCH http://localhost:8080/api/v1/me/channels/$TELEGRAM_CHANNEL_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "is_enabled": false
-  }' | jq
+  }')
 
-echo -e "\n\n=== 8. Получение текущей подписки ==="
-curl http://localhost:8080/api/v1/me/subscriptions \
+echo "$TELEGRAM_DISABLE" | jq
+
+# Шаг 9: Получение текущей подписки
+echo -e "\n=== Получение текущей подписки ==="
+curl -s http://localhost:8080/api/v1/me/subscriptions \
   -H "Authorization: Bearer $TOKEN" | jq
+
+# Шаг 10: Список каналов после отключения
+echo -e "\n=== Финальное состояние каналов ==="
+curl -s http://localhost:8080/api/v1/me/channels \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+echo -e "\n✅ Workflow завершён успешно!"
 ```
 
 ---

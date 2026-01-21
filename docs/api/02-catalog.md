@@ -430,3 +430,89 @@ curl -X PATCH http://localhost:8080/api/v1/groups/core-services \
 curl -X DELETE http://localhost:8080/api/v1/groups/core-services \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq
 ```
+
+---
+
+## Полный пример workflow
+
+```bash
+# Шаг 1: Получить admin токен
+echo "=== Получение admin токена ==="
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "password": "admin123"
+  }' | jq -r '.data.tokens.access_token')
+
+echo "Токен получен: ${ADMIN_TOKEN:0:20}..."
+
+# Шаг 2: Создать группу сервисов
+echo -e "\n=== Создание группы сервисов ==="
+GROUP=$(curl -s -X POST http://localhost:8080/api/v1/groups \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Backend Services",
+    "slug": "backend-services",
+    "description": "Все backend сервисы"
+  }')
+
+echo "$GROUP" | jq
+GROUP_ID=$(echo "$GROUP" | jq -r '.data.id')
+
+# Шаг 3: Создать первый сервис
+echo -e "\n=== Создание первого сервиса ==="
+SERVICE1=$(curl -s -X POST http://localhost:8080/api/v1/services \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Authentication API",
+    "slug": "auth-api",
+    "description": "API для аутентификации пользователей",
+    "group_id": "'"$GROUP_ID"'"
+  }')
+
+echo "$SERVICE1" | jq
+SERVICE1_ID=$(echo "$SERVICE1" | jq -r '.data.id')
+
+# Шаг 4: Создать второй сервис
+echo -e "\n=== Создание второго сервиса ==="
+SERVICE2=$(curl -s -X POST http://localhost:8080/api/v1/services \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Payment Gateway",
+    "slug": "payment-gateway",
+    "description": "Сервис обработки платежей",
+    "group_id": "'"$GROUP_ID"'"
+  }')
+
+echo "$SERVICE2" | jq
+SERVICE2_ID=$(echo "$SERVICE2" | jq -r '.data.id')
+
+# Шаг 5: Просмотр всех сервисов (публичный эндпоинт)
+echo -e "\n=== Список всех сервисов ==="
+curl -s http://localhost:8080/api/v1/services | jq
+
+# Шаг 6: Обновить статус первого сервиса
+echo -e "\n=== Обновление статуса сервиса ==="
+curl -s -X PATCH http://localhost:8080/api/v1/services/auth-api \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Authentication API",
+    "slug": "auth-api",
+    "status": "degraded"
+  }' | jq
+
+# Шаг 7: Просмотр конкретного сервиса
+echo -e "\n=== Просмотр сервиса ==="
+curl -s http://localhost:8080/api/v1/services/auth-api | jq
+
+# Шаг 8: Просмотр группы со всеми сервисами
+echo -e "\n=== Просмотр группы ==="
+curl -s http://localhost:8080/api/v1/groups/backend-services | jq
+
+echo -e "\n✅ Workflow завершён успешно!"
+```

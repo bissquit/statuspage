@@ -232,27 +232,59 @@ curl http://localhost:8080/api/v1/me \
 ## Полный пример workflow
 
 ```bash
+# Шаг 1: Регистрация нового пользователя
 echo "=== Регистрация ==="
-curl -X POST http://localhost:8080/api/v1/auth/register \
+REGISTER_RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"test123"}' | jq
+  -d '{
+    "email": "newuser@example.com",
+    "password": "securepass123"
+  }')
 
-echo -e "\n\n=== Логин ==="
-RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+echo "$REGISTER_RESPONSE" | jq
+
+# Шаг 2: Логин с новым пользователем
+echo -e "\n=== Логин ==="
+LOGIN_RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"test123"}')
+  -d '{
+    "email": "newuser@example.com",
+    "password": "securepass123"
+  }')
 
-echo $RESPONSE | jq .
+echo "$LOGIN_RESPONSE" | jq
 
-TOKEN=$(echo $RESPONSE | jq -r '.data.tokens.access_token')
-REFRESH_TOKEN=$(echo $RESPONSE | jq -r '.data.tokens.refresh_token')
+TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.tokens.access_token')
+REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.tokens.refresh_token')
 
-echo -e "\n\n=== Получение текущего пользователя ==="
-curl http://localhost:8080/api/v1/me \
-  -H "Authorization: Bearer $TOKEN" | jq
+# Шаг 3: Получение информации о текущем пользователе
+echo -e "\n=== Получение текущего пользователя ==="
+ME_RESPONSE=$(curl -s http://localhost:8080/api/v1/me \
+  -H "Authorization: Bearer $TOKEN")
 
-echo -e "\n\n=== Refresh токена ==="
-curl -X POST http://localhost:8080/api/v1/auth/refresh \
+echo "$ME_RESPONSE" | jq
+
+# Шаг 4: Обновление access токена
+echo -e "\n=== Refresh токена ==="
+REFRESH_RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/auth/refresh \
   -H "Content-Type: application/json" \
+  -d "{\"refresh_token\":\"$REFRESH_TOKEN\"}")
+
+echo "$REFRESH_RESPONSE" | jq
+
+NEW_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.data.access_token')
+
+# Шаг 5: Проверка нового токена
+echo -e "\n=== Проверка нового токена ==="
+curl -s http://localhost:8080/api/v1/me \
+  -H "Authorization: Bearer $NEW_TOKEN" | jq
+
+# Шаг 6: Логаут
+echo -e "\n=== Логаут ==="
+curl -s -X POST http://localhost:8080/api/v1/auth/logout \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $NEW_TOKEN" \
   -d "{\"refresh_token\":\"$REFRESH_TOKEN\"}" | jq
+
+echo -e "\n✅ Workflow завершён успешно!"
 ```

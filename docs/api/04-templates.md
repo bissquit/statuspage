@@ -417,3 +417,112 @@ curl -X POST http://localhost:8080/api/v1/events/from-template \
   "impact": "critical"
 }
 ```
+
+---
+
+## Полный пример workflow
+
+```bash
+# Шаг 1: Получить токены
+echo "=== Получение токенов ==="
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "password": "admin123"
+  }' | jq -r '.data.tokens.access_token')
+
+OPERATOR_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "operator@example.com",
+    "password": "admin123"
+  }' | jq -r '.data.tokens.access_token')
+
+echo "Токены получены успешно"
+
+# Шаг 2: Создать сервис для тестирования
+echo -e "\n=== Создание сервиса ==="
+SERVICE=$(curl -s -X POST http://localhost:8080/api/v1/services \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Payment Service",
+    "slug": "payment-service",
+    "description": "Сервис обработки платежей"
+  }')
+
+echo "$SERVICE" | jq
+SERVICE_ID=$(echo "$SERVICE" | jq -r '.data.id')
+
+# Шаг 3: Создать шаблон инцидента
+echo -e "\n=== Создание шаблона инцидента ==="
+TEMPLATE=$(curl -s -X POST http://localhost:8080/api/v1/templates \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "database-outage",
+    "type": "incident",
+    "title_template": "{{.ServiceName}} Database Issues",
+    "body_template": "We are investigating database connectivity issues affecting {{.ServiceName}}. Users may experience {{.ImpactDescription}}."
+  }')
+
+echo "$TEMPLATE" | jq
+TEMPLATE_ID=$(echo "$TEMPLATE" | jq -r '.data.id')
+
+# Шаг 4: Просмотр всех шаблонов
+echo -e "\n=== Список всех шаблонов ==="
+curl -s http://localhost:8080/api/v1/templates \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" | jq
+
+# Шаг 5: Получить конкретный шаблон
+echo -e "\n=== Получение шаблона ==="
+curl -s http://localhost:8080/api/v1/templates/database-outage \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" | jq
+
+# Шаг 6: Предварительный просмотр шаблона
+echo -e "\n=== Предварительный просмотр шаблона ==="
+PREVIEW=$(curl -s -X POST http://localhost:8080/api/v1/templates/database-outage/preview \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_name": "Payment Service",
+    "service_group_name": "Financial Services"
+  }')
+
+echo "$PREVIEW" | jq
+
+# Шаг 7: Создать событие из шаблона
+echo -e "\n=== Создание события из шаблона ==="
+EVENT=$(curl -s -X POST http://localhost:8080/api/v1/events \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "incident",
+    "title": "Payment Service Database Issues",
+    "description": "We are investigating database connectivity issues affecting Payment Service. Users may experience payment failures.",
+    "status": "investigating",
+    "severity": "major",
+    "service_ids": ["'"$SERVICE_ID"'"],
+    "template_id": "'"$TEMPLATE_ID"'"
+  }')
+
+echo "$EVENT" | jq
+EVENT_ID=$(echo "$EVENT" | jq -r '.id')
+
+# Шаг 8: Обновить шаблон
+echo -e "\n=== Обновление шаблона ==="
+curl -s -X PATCH http://localhost:8080/api/v1/templates/database-outage \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "body_template": "We are experiencing database issues with {{.ServiceName}}. Our team is actively working on a resolution."
+  }' | jq
+
+# Шаг 9: Просмотреть созданное событие
+echo -e "\n=== Просмотр созданного события ==="
+curl -s http://localhost:8080/api/v1/events/$EVENT_ID \
+  -H "Authorization: Bearer $OPERATOR_TOKEN" | jq
+
+echo -e "\n✅ Workflow завершён успешно!"
+```

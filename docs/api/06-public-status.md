@@ -388,3 +388,76 @@ fi
 ### Webhook уведомления
 
 Для интеграции с внешними системами можно использовать polling публичных эндпоинтов или настроить подписки через API уведомлений.
+
+---
+
+## Полный пример workflow
+
+```bash
+# Этот workflow демонстрирует использование публичных эндпоинтов
+# для мониторинга состояния системы без авторизации
+
+# Шаг 1: Проверка работоспособности приложения
+echo "=== Health Check ==="
+HEALTH=$(curl -s http://localhost:8080/healthz)
+echo "$HEALTH"
+
+# Шаг 2: Проверка готовности (подключение к БД)
+echo -e "\n=== Readiness Check ==="
+READY=$(curl -s http://localhost:8080/readyz)
+echo "$READY"
+
+# Шаг 3: Получение всех сервисов
+echo -e "\n=== Список всех сервисов ==="
+SERVICES=$(curl -s http://localhost:8080/api/v1/services)
+echo "$SERVICES" | jq
+
+# Шаг 4: Получение конкретного сервиса (если есть)
+echo -e "\n=== Получение первого сервиса ==="
+FIRST_SERVICE_SLUG=$(echo "$SERVICES" | jq -r '.data[0].slug // empty')
+
+if [ ! -z "$FIRST_SERVICE_SLUG" ]; then
+  curl -s http://localhost:8080/api/v1/services/$FIRST_SERVICE_SLUG | jq
+else
+  echo "Нет сервисов для отображения"
+fi
+
+# Шаг 5: Получение всех групп
+echo -e "\n=== Список всех групп ==="
+GROUPS=$(curl -s http://localhost:8080/api/v1/groups)
+echo "$GROUPS" | jq
+
+# Шаг 6: Получение списка всех событий
+echo -e "\n=== Список всех событий ==="
+EVENTS=$(curl -s http://localhost:8080/api/v1/events)
+echo "$EVENTS" | jq
+
+# Шаг 7: Фильтрация только инцидентов
+echo -e "\n=== Только инциденты ==="
+curl -s "http://localhost:8080/api/v1/events?type=incident" | jq
+
+# Шаг 8: Фильтрация только активных инцидентов
+echo -e "\n=== Активные инциденты (investigating) ==="
+curl -s "http://localhost:8080/api/v1/events?type=incident&status=investigating" | jq
+
+# Шаг 9: Получение деталей первого события (если есть)
+echo -e "\n=== Детали первого события ==="
+FIRST_EVENT_ID=$(echo "$EVENTS" | jq -r '.[0].id // empty')
+
+if [ ! -z "$FIRST_EVENT_ID" ]; then
+  curl -s http://localhost:8080/api/v1/events/$FIRST_EVENT_ID | jq
+else
+  echo "Нет событий для отображения"
+fi
+
+# Шаг 10: Проверка сервисов с проблемами
+echo -e "\n=== Сервисы с проблемами ==="
+echo "$SERVICES" | jq '[.data[] | select(.status != "operational")] | 
+  if length > 0 then 
+    map({name, status}) 
+  else 
+    "Все сервисы работают нормально" 
+  end'
+
+echo -e "\n✅ Workflow завершён успешно!"
+```

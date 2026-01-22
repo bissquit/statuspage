@@ -1,4 +1,4 @@
-# CLAUDE.md — StatusPage Service
+# CLAUDE.md — IncidentGarden
 
 ## 🎯 Project Goal
 
@@ -35,7 +35,7 @@ An open-source self-hosted status page service for displaying service states and
 ### File Structure
 
 ```
-incident-management/
+incident-garden/
 ├── cmd/statuspage/main.go           # Entry point
 ├── internal/
 │   ├── app/app.go                   # DI, routing, lifecycle

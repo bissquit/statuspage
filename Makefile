@@ -14,9 +14,13 @@ help:
 	@echo "  make migrate-create  - Create new migration (usage: make migrate-create NAME=migration_name)"
 	@echo "  make migrate-force   - Force migration version (usage: make migrate-force VERSION=version_number)"
 	@echo "  make build           - Build binary"
-	@echo "  make docker-build    - Build Docker image"
-	@echo "  make docker-up       - Start docker-compose"
-	@echo "  make docker-down     - Stop docker-compose"
+	@echo "  make docker-build    - Build production Docker image"
+	@echo "  make docker-up       - Start full stack (PostgreSQL + migrations + app)"
+	@echo "  make docker-down     - Stop full stack"
+	@echo "  make docker-logs     - Show stack logs"
+	@echo "  make docker-ps       - Show stack status"
+	@echo "  make docker-restart  - Restart application"
+	@echo "  make docker-postgres - Start only PostgreSQL"
 	@echo "  make generate        - Generate code (sqlc, mocks)"
 	@echo "  make openapi-validate - Validate OpenAPI spec"
 
@@ -65,10 +69,26 @@ docker-build:
 	docker build -t statuspage:latest -f deployments/docker/Dockerfile .
 
 docker-up:
-	docker-compose -f deployments/docker/docker-compose.yml up -d
+	@if [ ! -f .env ]; then \
+		echo "Error: .env file not found. Copy .env.example to .env and configure."; \
+		exit 1; \
+	fi
+	docker compose --env-file .env -f deployments/docker/docker-compose.yml up -d
 
 docker-down:
-	docker-compose -f deployments/docker/docker-compose.yml down
+	docker compose --env-file .env -f deployments/docker/docker-compose.yml down
+
+docker-logs:
+	docker compose --env-file .env -f deployments/docker/docker-compose.yml logs -f
+
+docker-ps:
+	docker compose --env-file .env -f deployments/docker/docker-compose.yml ps
+
+docker-restart:
+	docker compose --env-file .env -f deployments/docker/docker-compose.yml restart app
+
+docker-postgres:
+	docker compose --env-file .env -f deployments/docker/docker-compose-postgres.yml up -d
 
 generate:
 	@echo "Code generation not yet configured"
@@ -84,3 +104,16 @@ openapi-validate:
 		echo "  go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest"; \
 		exit 1; \
 	fi
+
+# =============================================================================
+# Docker Registry
+# =============================================================================
+
+IMAGE_NAME ?= statuspage
+IMAGE_TAG ?= latest
+REGISTRY ?= ghcr.io/$(shell git config --get remote.origin.url | sed 's/.*github.com[:/]\(.*\)\.git/\1/' | tr '[:upper:]' '[:lower:]')
+
+.PHONY: docker-push
+docker-push:
+	docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+	docker push $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)

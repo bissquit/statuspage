@@ -34,14 +34,14 @@ When working on any feature or change, follow this sequence:
 
 ### Layer Responsibilities
 
-| Layer               | File                     | Responsibility                                                   | What NOT to do                   |
-|---------------------|--------------------------|------------------------------------------------------------------|----------------------------------|
-| **Handler**         | `handler.go`             | HTTP I/O, auth/roles check, input validation, error→HTTP mapping | Business logic, SQL              |
-| **Service**         | `service.go`             | Use-cases, business rules, transaction boundaries, orchestration | SQL queries, HTTP concerns       |
-| **Repository**      | `repository.go`          | Interface definition                                             | Implementation details           |
-| **Repository Impl** | `postgres/repository.go` | Data access (SQL/pgx)                                            | Business decisions, domain logic |
-| **Domain**          | `internal/domain/`       | Business entities, domain errors                                 | Infrastructure, I/O              |
-| **Pkg**             | `internal/pkg/`          | Shared infrastructure utilities                                  | Business logic                   |
+| Layer | File | Responsibility | What NOT to do |
+|-------|------|----------------|----------------|
+| **Handler** | `handler.go` | HTTP I/O, auth/roles check, input validation, error→HTTP mapping | Business logic, SQL |
+| **Service** | `service.go` | Use-cases, business rules, transaction boundaries, orchestration | SQL queries, HTTP concerns |
+| **Repository** | `repository.go` | Interface definition | Implementation details |
+| **Repository Impl** | `postgres/repository.go` | Data access (SQL/pgx) | Business decisions, domain logic |
+| **Domain** | `internal/domain/` | Business entities, domain errors | Infrastructure, I/O |
+| **Pkg** | `internal/pkg/` | Shared infrastructure utilities | Business logic |
 
 ---
 
@@ -134,6 +134,208 @@ incident-garden/
 ├── docker-compose.yml
 ├── Makefile
 └── go.mod
+```
+
+### 🗺 Codemap (Quick Navigation)
+
+#### Where to Make Changes
+
+| I need to...                 | Go to                                      |
+|------------------------------|--------------------------------------------|
+| Add/modify API endpoint      | `internal/<module>/handler.go`             |
+| Add business rule/validation | `internal/<module>/service.go`             |
+| Change database query        | `internal/<module>/postgres/repository.go` |
+| Add new entity               | `internal/domain/<entity>.go`              |
+| Add database migration       | `migrations/NNNNNN_name.up.sql`            |
+| Add shared utility           | `internal/pkg/<package>/`                  |
+| Add integration test         | `tests/integration/<module>_test.go`       |
+| Change app wiring/DI         | `internal/app/app.go`                      |
+| Modify configuration         | `internal/config/config.go`                |
+
+#### Module: identity (authentication & RBAC)
+
+```
+internal/identity/
+├── handler.go           → POST /auth/register, /login, /refresh, /logout; GET /me
+├── service.go           → Business logic for auth flows
+├── repository.go        → Interface: UserRepository, TokenRepository
+├── authenticator.go     → Interface: Authenticator (token generation/validation)
+├── jwt/authenticator.go → JWT implementation of Authenticator
+└── postgres/repository.go → PostgreSQL implementation
+
+Key exports:
+  Handler:    RegisterHandler, LoginHandler, RefreshHandler, LogoutHandler, MeHandler
+  Service:    CreateUser(ctx, input) → (*User, error)
+              Authenticate(ctx, email, password) → (tokens, error)
+              RefreshTokens(ctx, refreshToken) → (tokens, error)
+  Middleware: RequireAuth(next http.Handler) → http.Handler
+              RequireRole(roles ...string) → func(http.Handler) http.Handler
+
+Dependencies: domain.User, pkg/postgres, pkg/httputil
+```
+
+#### Module: catalog (services & groups management)
+
+```
+internal/catalog/
+├── handler.go             → CRUD for /services, /groups (public GET, admin POST/PATCH/DELETE)
+├── service.go             → Validation, orchestration, slug generation
+├── service_test.go        → Unit tests
+├── repository.go          → Interface: ServiceRepository, GroupRepository
+└── postgres/repository.go → PostgreSQL implementation
+
+Key exports:
+  Handler: ListServices, GetService, CreateService, UpdateService, DeleteService
+           ListGroups, GetGroup, CreateGroup, UpdateGroup, DeleteGroup
+  Service: CreateService(ctx, input) → (*domain.Service, error)
+           UpdateService(ctx, slug, input) → (*domain.Service, error)
+           ListServices(ctx) → ([]domain.Service, error)
+           CreateGroup(ctx, input) → (*domain.Group, error)
+           // ... similar for groups
+
+Dependencies: domain.Service, domain.Group, pkg/postgres
+```
+
+#### Module: events (incidents, maintenance, templates)
+
+```
+internal/events/
+├── handler.go             → CRUD for /events, /updates, /templates; GET /status
+├── service.go             → Event lifecycle, status transitions, template rendering
+├── service_test.go        → Unit tests
+├── repository.go          → Interface: EventRepository, TemplateRepository
+├── template_renderer.go   → Go template execution with macros
+├── errors.go              → Domain errors (ErrEventNotFound, ErrInvalidTransition, etc.)
+└── postgres/repository.go → PostgreSQL implementation
+
+Key exports:
+  Handler: CreateEvent, ListEvents, GetEvent, DeleteEvent
+           AddUpdate, ListUpdates
+           CreateTemplate, ListTemplates, DeleteTemplate, PreviewTemplate
+           GetStatus, GetStatusHistory
+  Service: CreateEvent(ctx, input, userID) → (*domain.Event, error)
+           AddUpdate(ctx, eventID, input, userID) → (*domain.EventUpdate, error)
+           GetPublicStatus(ctx) → (*StatusResponse, error)
+           RenderTemplate(ctx, slug, data) → (title, body string, error)
+  TemplateRenderer: Execute(tmpl, data) → (string, error)
+
+Dependencies: domain.Event, domain.Template, catalog.Service (read-only for service info), pkg/postgres
+
+Status transitions:
+  Incident:    investigating → identified → monitoring → resolved
+  Maintenance: scheduled → in_progress → completed
+```
+
+#### Module: notifications (channels, subscriptions, dispatch)
+
+```
+internal/notifications/
+├── handler.go             → CRUD for /me/channels, /me/subscriptions
+├── service.go             → Channel/subscription management
+├── repository.go          → Interface: ChannelRepository, SubscriptionRepository
+├── dispatcher.go          → Notification dispatch orchestration
+├── sender.go              → Interface: Sender
+├── errors.go              → Domain errors
+├── email/sender.go        → Email sender (stub)
+├── telegram/sender.go     → Telegram sender (stub)
+└── postgres/repository.go → PostgreSQL implementation
+
+Key exports:
+  Handler: ListChannels, CreateChannel, UpdateChannel, DeleteChannel
+           ListSubscriptions, CreateSubscription, DeleteSubscription
+  Service: CreateChannel(ctx, userID, input) → (*domain.Channel, error)
+           Subscribe(ctx, userID, serviceIDs) → (*domain.Subscription, error)
+           GetSubscribersForServices(ctx, serviceIDs) → ([]Subscriber, error)
+  Dispatcher: Dispatch(ctx, notification) → error
+  Sender:     Send(ctx, target, message) → error  [interface]
+
+Dependencies: domain.Channel, domain.Subscription, pkg/postgres
+
+⚠️ Status: Senders are stubs, dispatcher not integrated with events yet
+```
+
+#### Shared: domain (business entities)
+
+```
+internal/domain/
+├── user.go         → User, Role constants (RoleUser, RoleOperator, RoleAdmin)
+├── service.go      → Service, ServiceStatus constants, Group, Tag
+├── event.go        → Event, EventUpdate, EventType, EventStatus, Severity
+├── template.go     → EventTemplate
+├── subscription.go → Subscription
+└── notification.go → Channel, ChannelType, Notification
+
+No dependencies on other internal packages (pure domain)
+```
+
+#### Shared: pkg (infrastructure utilities)
+
+```
+internal/pkg/
+├── httputil/
+│   ├── middleware.go → Logging, recovery, request ID middleware
+│   └── response.go   → JSON response helpers: Success(w, data), Error(w, code, msg)
+└── postgres/
+    └── postgres.go   → Connect(cfg) → (*pgxpool.Pool, error), health checks
+
+No dependencies on domain or modules (pure infrastructure)
+```
+
+#### Dependency Graph
+
+```
+cmd/statuspage/main.go
+  └── app.NewApp(cfg)
+        │
+        ├── config.Load() ─────────────────────────────────────────────┐
+        ├── postgres.Connect(cfg.DB) ──────────────────────────────────┤
+        │                                                              │
+        │   ┌─────────────────────────────────────────────────────┐    │
+        │   │                    MODULES                          │    │
+        │   ├─────────────────────────────────────────────────────┤    │
+        │   │                                                     │    │
+        │   │  identity.Repository ◄── postgres                   │    │
+        │   │       │                                             │    │
+        │   │       ▼                                             │    │
+        │   │  identity.Service ◄── jwt.Authenticator             │    │
+        │   │       │                                             │    │
+        │   │       ▼                                             │    │
+        │   │  identity.Handler ───────────────────────┐          │    │
+        │   │  identity.Middleware ◄───────────────────┼──────────┤    │
+        │   │                                          │          │    │
+        │   │  catalog.Repository ◄── postgres         │          │    │
+        │   │       │                                  │          │    │
+        │   │       ▼                                  │          │    │
+        │   │  catalog.Service                         │          │    │
+        │   │       │                                  │          │    │
+        │   │       ▼                                  │          │    │
+        │   │  catalog.Handler ────────────────────────┤          │    │
+        │   │                                          │          │    │
+        │   │  events.Repository ◄── postgres          │          │    │
+        │   │       │                                  │          │    │
+        │   │       ▼                                  ▼          │    │
+        │   │  events.Service ◄── TemplateRenderer  chi.Router ◄──┘    │
+        │   │       │                                  ▲               │
+        │   │       ▼                                  │               │
+        │   │  events.Handler ─────────────────────────┤               │
+        │   │                                          │               │
+        │   │  notifications.Repository ◄── postgres   │               │
+        │   │       │                                  │               │
+        │   │       ▼                                  │               │
+        │   │  notifications.Service                   │               │
+        │   │       │                                  │               │
+        │   │       ▼                                  │               │
+        │   │  notifications.Dispatcher                │               │
+        │   │       │                                  │               │
+        │   │       ├── email.Sender                   │               │
+        │   │       └── telegram.Sender                │               │
+        │   │       │                                  │               │
+        │   │       ▼                                  │               │
+        │   │  notifications.Handler ──────────────────┘               │
+        │   │                                                          │
+        │   └─────────────────────────────────────────────────────┘    │
+        │                                                              │
+        └── HTTP Server ◄──────────────────────────────────────────────┘
 ```
 
 ### API Endpoints (implemented)

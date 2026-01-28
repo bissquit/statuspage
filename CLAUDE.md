@@ -15,6 +15,36 @@ An open-source self-hosted status page service for displaying service states and
 
 ---
 
+## 🔄 Development Playbook
+
+### Algorithm for Any Task
+
+When working on any feature or change, follow this sequence:
+
+1. **Clarify requirements:** which module (identity/catalog/events/notifications), which endpoint/schema change, role access, backward compatibility.
+2. **Check the contract:**
+    - If API changes → update OpenAPI (`api/openapi/openapi.yaml`) first, then implement
+    - If schema changes → create migration first + test scenario
+3. **Design boundaries:** determine what belongs to handler/service/repository/domain/pkg, identify new dependencies.
+4. **Implement top-down:** handler (contract) → service (use-cases) → repository (I/O) → migrations.
+5. **Errors and responses:** strictly follow the contract `{data}` / `{error}`.
+6. **Tests:** unit for business logic; integration (testcontainers) for use-cases + Postgres.
+7. **Local validation:** `make lint`, `make test`, `make build`.
+8. **PR:** description, link to changed contract/migrations, DoD checklist.
+
+### Layer Responsibilities
+
+| Layer               | File                     | Responsibility                                                   | What NOT to do                   |
+|---------------------|--------------------------|------------------------------------------------------------------|----------------------------------|
+| **Handler**         | `handler.go`             | HTTP I/O, auth/roles check, input validation, error→HTTP mapping | Business logic, SQL              |
+| **Service**         | `service.go`             | Use-cases, business rules, transaction boundaries, orchestration | SQL queries, HTTP concerns       |
+| **Repository**      | `repository.go`          | Interface definition                                             | Implementation details           |
+| **Repository Impl** | `postgres/repository.go` | Data access (SQL/pgx)                                            | Business decisions, domain logic |
+| **Domain**          | `internal/domain/`       | Business entities, domain errors                                 | Infrastructure, I/O              |
+| **Pkg**             | `internal/pkg/`          | Shared infrastructure utilities                                  | Business logic                   |
+
+---
+
 ## 📊 Current Project Status
 
 **Last update:** 2026-01-21
@@ -451,10 +481,23 @@ make docker-build       # Build Docker image
 └─────────────┴─────────────┴─────────────┴─────────────────────┘
 ```
 
+### Module Rules
+- No circular dependencies between modules
+- External world communicates with module via handlers/contracts and public interfaces
+- Domain entities live in `internal/domain` (or stay modular if that causes friction)
+- Avoid "anemic" domain, but don't drag infrastructure into it
+
 **Rule for splitting into microservices:** extract a module only if:
 - It has a fundamentally different load pattern (notifications are asynchronous)
 - Independent deployment is required
 - Development team is scaling
+
+### Preferred Patterns
+- **Thin handlers:** handlers only deal with HTTP, no business decisions
+- **Use-case services:** all logic in `service.go`
+- **Ports & adapters (minimal):** repository interfaces in module, implementation in `postgres/`
+- **Explicit domain errors:** `errors.go` in module + `errors.Is/As` for HTTP mapping
+- **Consistent response helpers:** unified functions in `internal/pkg/httputil/response.go`
 
 ---
 
@@ -488,21 +531,6 @@ make docker-build       # Build Docker image
 
 ## 🧪 Testing Strategy
 
-### Current Coverage
-- **Unit tests:** catalog/service_test.go, events/service_test.go
-- **Integration tests:** tests/integration/ (20 tests)
-    - auth_test.go — registration, login, tokens
-    - catalog_test.go — services and groups CRUD
-    - events_test.go — incident and maintenance lifecycle
-    - rbac_test.go — role and access verification
-
-### Running Tests
-```bash
-make test               # All tests
-make test-unit          # Unit tests
-make test-integration   # Integration tests (with testcontainers)
-```
-
 ### Test Pyramid
 ```
          /\
@@ -512,6 +540,32 @@ make test-integration   # Integration tests (with testcontainers)
      /────────\
     /          \ Unit (70%) — isolated functions
    /────────────\
+```
+
+### Current Coverage
+- **Unit tests:** catalog/service_test.go, events/service_test.go
+- **Integration tests:** tests/integration/ (20 tests)
+    - auth_test.go — registration, login, tokens
+    - catalog_test.go — services and groups CRUD
+    - events_test.go — incident and maintenance lifecycle
+    - rbac_test.go — role and access verification
+
+### Test Matrix: What Change → What Tests Required
+
+| Change Type                       | Unit Test  | Integration Test            | Notes                       |
+|-----------------------------------|------------|-----------------------------|-----------------------------|
+| Repository SQL                    | —          | ✅ Required                  | Test with real Postgres     |
+| Business rules in service         | ✅ Required | If DB/transactions involved | Mock repository for unit    |
+| Handler contract/validation/roles | —          | ✅ Required                  | Use `testutil/client`       |
+| OpenAPI changes                   | —          | ✅ At least 1 test           | Verify new/changed scenario |
+| Migrations                        | —          | ✅ Required                  | Clean DB + full scenario    |
+| Domain logic (pure functions)     | ✅ Required | —                           | No I/O needed               |
+
+### Running Tests
+```bash
+make test               # All tests
+make test-unit          # Unit tests
+make test-integration   # Integration tests (with testcontainers)
 ```
 
 ---
@@ -656,6 +710,21 @@ make test-integration   # Integration tests (with testcontainers)
 
 ## 🎯 Definition of Done
 
+### For PR (checklist)
+
+A PR is ready to merge only when ALL of the following are satisfied:
+
+- [ ] **Layer boundaries respected:** handler has no business logic; service has no SQL; repository has no domain logic
+- [ ] **Errors handled:** no ignored errors; all wrapped with context (`fmt.Errorf("...: %w", err)`)
+- [ ] **Contract updated:** OpenAPI modified if API changed; migrations added if schema changed
+- [ ] **Tests added:** according to Test Matrix (see Testing Strategy)
+- [ ] **Linters pass:** `make lint` with zero errors
+- [ ] **Tests pass:** `make test` and/or `make test-integration`
+- [ ] **Build passes:** `make build`
+- [ ] **CI passes:** lint + test + integration-test + build
+
+### For Feature (complete)
+
 A feature is considered complete when:
 - [x] Code is written and meets standards
 - [x] Unit tests are written
@@ -669,28 +738,84 @@ A feature is considered complete when:
 
 ## 💬 How to Work with Claude
 
-### When requesting a new feature:
-1. Describe the business requirement
-2. I'll propose a design and estimate complexity
-3. Discuss trade-offs
-4. Implement iteratively
+### Flags for Special Modes
 
-### When discussing architecture:
-1. I'll ask clarifying questions
-2. Propose several options with pros/cons
-3. Apply the "10/20 rule" to assess complexity
+#### `[DESIGN]` — Architecture Discussion
+Before writing code, discuss the design:
+- Describe the problem and constraints
+- Specify the module and affected endpoints
+- Request 2-3 options with trade-offs
+- Apply the "10/20 rule" to assess complexity
 
-### When writing code:
-1. First — interface/contract
-2. Then — implementation
-3. In parallel — tests
-4. Finally — integration
+**What to provide:**
+```
+[DESIGN] Need to add feature X to module Y.
+- Business requirement: ...
+- Affected endpoints: ...
+- Constraints: backward compatibility, performance, etc.
+```
 
-### Flags for special modes:
-- `[REVIEW]` — please review my code
-- `[REFACTOR]` — need to refactor existing code
-- `[DEBUG]` — help find an issue
-- `[DESIGN]` — discuss architecture before code
+#### `[REFACTOR]` — Code Restructuring
+When existing code needs improvement:
+- Specify the target invariant (layer boundaries, reduce coupling, remove duplication)
+- Request to preserve contracts
+- Ensure test coverage
+
+**What to provide:**
+```
+[REFACTOR] Need to refactor X.
+- Current problem: ...
+- Target state: ...
+- Constraints: keep API contract, preserve behavior
+```
+
+#### `[DEBUG]` — Issue Investigation
+When something doesn't work:
+- Provide symptoms, reproduction steps
+- Include logs, error messages
+- Specify version, branch
+- Request hypotheses and minimal checks
+
+**What to provide:**
+```
+[DEBUG] Getting error X when doing Y.
+- Steps to reproduce: ...
+- Expected: ...
+- Actual: ...
+- Logs: ...
+```
+
+#### `[REVIEW]` — Code Review
+When code needs review:
+- Provide link or diff
+- Request check for: layer boundaries, error handling/wrapping, tests, OpenAPI/migrations, lints
+
+**What to provide:**
+```
+[REVIEW] Please review this change.
+- Link/diff: ...
+- What changed: ...
+- Concerns: ...
+```
+
+### Standard Workflow
+
+1. **When requesting a new feature:**
+    - Describe the business requirement
+    - I'll propose a design and estimate complexity
+    - Discuss trade-offs
+    - Implement iteratively
+
+2. **When discussing architecture:**
+    - I'll ask clarifying questions
+    - Propose several options with pros/cons
+    - Apply the "10/20 rule" to assess complexity
+
+3. **When writing code:**
+    - First — interface/contract
+    - Then — implementation
+    - In parallel — tests
+    - Finally — integration
 
 ---
 
